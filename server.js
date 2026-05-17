@@ -15,7 +15,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Database
-const db = new Database(path.join(__dirname, 'data', 'pos.db'));
+const db = new Database('/opt/projects/lacucharadelsabor/data/pos.db');
 db.pragma('foreign_keys = ON');
 
 // ======================
