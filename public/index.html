@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>La Cucharada del Sabor - POS</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍴</text></svg>">
+</head>
+<body>
+
+<!-- ============ LOGIN PAGE ============ -->
+<div id="loginPage" class="login-container" style="display:none">
+  <div class="login-box">
+    <h1>🍴 La Cucharada del Sabor</h1>
+    <p>Sistema de Punto de Venta</p>
+    <form id="loginForm">
+      <input type="text" id="username" placeholder="Usuario" required autocomplete="username">
+      <input type="password" id="password" placeholder="Contraseña" required autocomplete="current-password">
+      <button type="submit">Ingresar</button>
+    </form>
+  </div>
+</div>
+
+<!-- ============ MAIN APP ============ -->
+<div id="mainApp" class="main-layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <h2 id="storeName">La Cucharada del Sabor</h2>
+      <span id="userDisplay">-</span>
+    </div>
+    <div class="sidebar-nav">
+      <a onclick="showPage('pos')" class="active"><span class="icon">🖥️</span> Punto de Venta</a>
+      <a onclick="showPage('sales')"><span class="icon">📋</span> Ventas</a>
+      <a onclick="showPage('closures')"><span class="icon">📦</span> Cierres de Caja</a>
+      <a onclick="showPage('admin')" id="navAdmin" style="display:none"><span class="icon">⚙️</span> Admin</a>
+    </div>
+    <div style="padding:1rem;margin-top:auto;border-top:1px solid #e0e0e0">
+      <button class="btn btn-outline" onclick="logout()" style="width:100%">Cerrar Sesión</button>
+    </div>
+  </nav>
+
+  <!-- CONTENT -->
+  <main class="content">
+
+    <!-- ===== POS PAGE ===== -->
+    <div id="page-pos" class="page active">
+      <div class="topbar">
+        <h1>🖥️ Punto de Venta</h1>
+        <div class="topbar-right">
+          <div id="closureStatus"><span class="badge badge-warning">Caja Cerrada</span></div>
+          <button class="btn btn-outline btn-sm" onclick="openClosure()">Abrir Caja</button>
+          <button class="btn btn-danger btn-sm" onclick="closeClosure()">Cerrar Caja</button>
+        </div>
+      </div>
+
+      <div class="pos-layout">
+        <!-- LEFT: Categories + Products -->
+        <div>
+          <div class="search-bar">
+            <input type="text" placeholder="Buscar producto..." oninput="searchProducts(this.value)">
+          </div>
+          <div class="categories-bar" id="categoriesBar"></div>
+          <div class="products-grid" id="productsGrid"></div>
+        </div>
+
+        <!-- RIGHT: Order Panel -->
+        <div class="order-panel">
+          <div class="order-header">
+            <h3>🛒 Orden Actual</h3>
+            <button class="btn btn-sm btn-outline" onclick="order=[];renderOrder()">Limpiar</button>
+          </div>
+          <div class="order-items" id="orderItems">
+            <div id="orderEmpty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;color:#9e9e9e">
+              <span style="font-size:3rem">🛒</span>
+              <p style="margin-top:0.5rem;font-size:0.9rem">Sin productos agregados</p>
+            </div>
+          </div>
+          <div class="order-footer">
+            <div class="order-total-row">
+              <span style="font-size:0.9rem;color:#757575">TOTAL:</span>
+              <h2 id="orderTotal">₡0</h2>
+            </div>
+            <div class="payment-methods">
+              <button class="pay-btn active" onclick="setPaymentMethod('efectivo')" data-method="efectivo">
+                <span class="icon">💵</span>Efectivo
+              </button>
+              <button class="pay-btn" onclick="setPaymentMethod('tarjeta')" data-method="tarjeta">
+                <span class="icon">💳</span>Tarjeta
+              </button>
+              <button class="pay-btn" onclick="setPaymentMethod('mixto')" data-method="mixto">
+                <span class="icon">🔀</span>Mixto
+              </button>
+            </div>
+            <div class="cash-input" id="cashInput">
+              <input type="number" id="cashReceived" placeholder="Dinero recibido...">
+            </div>
+            <div class="split-inputs" id="splitInputs">
+              <input type="number" id="cashPart" placeholder="Efectivo...">
+              <input type="number" id="cardPart" placeholder="Tarjeta...">
+            </div>
+            <div class="order-actions">
+              <button class="btn btn-primary" onclick="processSale()">💵 Cobrar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SALES PAGE ===== -->
+    <div id="page-sales" class="page">
+      <div class="topbar">
+        <h1>📋 Historial de Ventas</h1>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Cajero</th><th>Fecha y Hora</th><th>Total</th><th>Método</th><th>Cambio</th>
+            </tr>
+          </thead>
+          <tbody id="salesBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== CLOSURES PAGE ===== -->
+    <div id="page-closures" class="page">
+      <div class="topbar">
+        <h1>📦 Cierres de Caja</h1>
+      </div>
+      <div class="closure-actions">
+        <button class="btn btn-primary" onclick="openClosure()">Abrir Caja</button>
+        <button class="btn btn-danger" onclick="closeClosure()">Cerrar Caja</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Usuario</th><th>Apertura</th><th>Saldo Inicial</th><th>Efectivo</th><th>Tarjeta</th><th>Total</th><th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="closuresBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== ADMIN PAGE ===== -->
+    <div id="page-admin" class="page">
+      <div class="topbar">
+        <h1>⚙️ Panel de Administración</h1>
+        <div class="topbar-right">
+          <button class="btn btn-primary" onclick="showConfigModal()">⚙️ Configuración</button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div style="display:flex;gap:0.5rem;margin-bottom:1rem;border-bottom:2px solid #e0e0e0;padding-bottom:0.5rem">
+        <button class="btn btn-primary" onclick="showAdminTab('products')" id="tabProducts">Productos</button>
+        <button class="btn btn-outline" onclick="showAdminTab('users')" id="tabUsers">Usuarios</button>
+      </div>
+
+      <!-- PRODUCTS TAB -->
+      <div id="adminProducts">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <h2>Gestión de Productos</h2>
+          <button class="btn btn-primary" onclick="showProductModal()">+ Agregar Producto</button>
+        </div>
+        <div class="search-bar">
+          <input type="text" placeholder="Buscar producto..." oninput="searchProductsAdmin(this.value)">
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Descripción</th><th>Acciones</th></tr>
+            </thead>
+            <tbody id="productsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- USERS TAB -->
+      <div id="adminUsers" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <h2>Gestión de Usuarios</h2>
+          <button class="btn btn-primary" onclick="showUserModal()">+ Agregar Usuario</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Usuario</th><th>Rol</th><th>Creado</th><th>Acciones</th></tr>
+            </thead>
+            <tbody id="usersBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ============ MODALS ============ -->
+
+<!-- PRODUCT MODAL -->
+<div class="modal-overlay" id="productModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="productModalTitle">Agregar Producto</h3>
+      <button class="modal-close" onclick="hideModal()">&times;</button>
+    </div>
+    <form id="productForm" onsubmit="event.preventDefault();saveProduct()">
+      <input type="hidden" id="productId">
+      <div class="form-group">
+        <label>Nombre del producto</label>
+        <input type="text" id="productName" required placeholder="Ej: Tacos de Carne Asada">
+      </div>
+      <div class="form-group">
+        <label>Precio (colones)</label>
+        <input type="number" id="productPrice" required placeholder="1200" min="0">
+      </div>
+      <div class="form-group">
+        <label>Categoría</label>
+        <select id="productCategory"></select>
+      </div>
+      <div class="form-group">
+        <label>Descripción</label>
+        <input type="text" id="productDesc" placeholder="Descripción breve...">
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;margin-top:0.5rem">Guardar Producto</button>
+    </form>
+  </div>
+</div>
+
+<!-- USER MODAL -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Agregar Usuario</h3>
+      <button class="modal-close" onclick="hideModal()">&times;</button>
+    </div>
+    <form id="userForm" onsubmit="event.preventDefault();saveUser()">
+      <input type="hidden" id="editUserId">
+      <div class="form-group">
+        <label>Nombre de usuario</label>
+        <input type="text" id="newUsername" placeholder="usuario">
+      </div>
+      <div class="form-group">
+        <label>Contraseña <span style="font-weight:400;font-size:0.8rem">(dejar vacío para no cambiar)</span></label>
+        <input type="password" id="newPassword" placeholder="Nueva contraseña">
+      </div>
+      <div class="form-group">
+        <label>Rol</label>
+        <select id="newUserRole">
+          <option value="cajero">Cajero</option>
+          <option value="admin">Administrador</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;margin-top:0.5rem">Guardar Usuario</button>
+    </form>
+  </div>
+</div>
+
+<!-- CONFIG MODAL -->
+<div class="modal-overlay" id="configModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>⚙️ Configuración del Sistema</h3>
+      <button class="modal-close" onclick="hideModal()">&times;</button>
+    </div>
+    <form onsubmit="event.preventDefault();saveConfig()">
+      <div class="form-group">
+        <label>Nombre del negocio</label>
+        <input type="text" id="cfgStoreName" placeholder="La Cucharada del Sabor">
+      </div>
+      <div class="form-group">
+        <label>Dirección</label>
+        <input type="text" id="cfgAddress" placeholder="Dirección del local">
+      </div>
+      <div class="form-group">
+        <label>Teléfono</label>
+        <input type="text" id="cfgPhone" placeholder="Teléfono de contacto">
+      </div>
+      <div class="form-group">
+        <label>Mensaje del ticket (pie)</label>
+        <input type="text" id="cfgFooter" placeholder="¡Gracias por su visita!">
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%">Guardar Configuración</button>
+    </form>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+// Show admin nav if admin
+if (currentUser && currentUser.role === 'admin') {
+  document.getElementById('navAdmin').style.display = 'flex';
+}
+function showAdminTab(tab) {
+  document.getElementById('adminProducts').style.display = tab === 'products' ? 'block' : 'none';
+  document.getElementById('adminUsers').style.display = tab === 'users' ? 'block' : 'none';
+  document.getElementById('tabProducts').className = tab === 'products' ? 'btn btn-primary' : 'btn btn-outline';
+  document.getElementById('tabUsers').className = tab === 'users' ? 'btn btn-primary' : 'btn btn-outline';
+  if (tab === 'products') loadProductsTable();
+  if (tab === 'users') loadUsers();
+}
+function searchProductsAdmin(q) {
+  const qlow = q.toLowerCase();
+  const filtered = products.filter(p => p.name.toLowerCase().includes(qlow) || (p.description||'').toLowerCase().includes(qlow));
+  const tbody = document.getElementById('productsBody');
+  tbody.innerHTML = filtered.map(p => `
+    <tr>
+      <td>${p.id}</td>
+      <td>${p.category_icon} ${p.name}</td>
+      <td>${p.category_name}</td>
+      <td><strong>${formatCRC(p.price)}</strong></td>
+      <td>${p.description || '-'}</td>
+      <td>
+        <button class="btn btn-sm btn-outline" onclick="showProductModal(products.find(x=>x.id===${p.id}))">Editar</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})">X</button>
+      </td>
+    </tr>
+  `).join('');
+}
+// Populate category select in modal
+const catSelect = document.getElementById('productCategory');
+if (catSelect && categories.length) {
+  catSelect.innerHTML = categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+}
+</script>
+</body>
+</html>
